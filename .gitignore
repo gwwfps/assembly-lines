@@ -1,0 +1,5 @@
+/assembly-lines
+node_modules
+.vscode
+.idea
+/build

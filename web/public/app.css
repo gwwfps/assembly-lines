@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css?family=Playfair+Display|Varela+Round');
+
+body {
+  font-family: 'Varela Round', sans-serif;
+}
+
+h1 {
+  font-family: 'Playfair Display', serif;
+  font-weight: normal;
+}

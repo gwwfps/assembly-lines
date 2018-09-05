@@ -1,0 +1,9 @@
+{
+  "features": {
+    "cloud": "v2"
+  },
+  "env": {
+    "ASSEMBLY_REDIS_URL": "@redis-url",
+    "ASSEMBLY_REDIS_PASSWORD": "@redis-password"
+  }
+}
