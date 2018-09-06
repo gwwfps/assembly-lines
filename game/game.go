@@ -2,28 +2,64 @@ package game
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/gwwfps/assembly-lines/game/cards"
 )
 
+type GamePhase int
+
+const (
+	GamePhaseLobby GamePhase = iota
+	GamePhaseInProgress
+	GamePhaseComplete
+)
+
 type Game struct {
-	Deck        *cards.Deck
-	InProgress  bool
-	Players     map[string]*Player
-	playerNames map[string]string
+	Deck             *cards.Deck
+	Phase            GamePhase
+	Players          map[string]*Player
+	playerNames      map[string]string
+	globalStateMutex *sync.Mutex
 }
 
 func NewStandardGame() *Game {
 	return &Game{
-		Players:     map[string]*Player{},
-		Deck:        cards.NewStandardDeck(),
-		playerNames: map[string]string{},
+		Phase:            GamePhaseLobby,
+		Players:          map[string]*Player{},
+		Deck:             cards.NewStandardDeck(),
+		playerNames:      map[string]string{},
+		globalStateMutex: &sync.Mutex{},
 	}
 }
 
+func (g *Game) GetPlayerById(id string) *Player {
+	name, exists := g.playerNames[id]
+	if exists {
+		return g.Players[name]
+	}
+	return nil
+}
+
+func (g *Game) IsPlayerJoined(id string) bool {
+	_, exists := g.playerNames[id]
+	return exists
+}
+
+func (g *Game) GetPlayerNames() []string {
+	var names []string
+	for _, name := range g.playerNames {
+		names = append(names, name)
+	}
+	return names
+}
+
 func (g *Game) AddPlayer(id string, name string, sheetName string) error {
-	if g.InProgress {
-		return fmt.Errorf("game already in progress")
+	g.globalStateMutex.Lock()
+	defer g.globalStateMutex.Unlock()
+
+	if g.Phase != GamePhaseLobby {
+		return fmt.Errorf("game already started")
 	}
 
 	_, inGame := g.playerNames[id]
@@ -42,8 +78,11 @@ func (g *Game) AddPlayer(id string, name string, sheetName string) error {
 }
 
 func (g *Game) WithdrawPlayer(id string) error {
-	if g.InProgress {
-		return fmt.Errorf("game already in progress")
+	g.globalStateMutex.Lock()
+	defer g.globalStateMutex.Unlock()
+
+	if g.Phase != GamePhaseLobby {
+		return fmt.Errorf("game already started")
 	}
 
 	name, exists := g.playerNames[id]
@@ -57,10 +96,13 @@ func (g *Game) WithdrawPlayer(id string) error {
 }
 
 func (g *Game) Start() error {
-	if g.InProgress {
-		return fmt.Errorf("game already in progress")
+	g.globalStateMutex.Lock()
+	defer g.globalStateMutex.Unlock()
+
+	if g.Phase != GamePhaseLobby {
+		return fmt.Errorf("game already started")
 	}
 
-	g.InProgress = true
+	g.Phase = GamePhaseInProgress
 	return nil
 }

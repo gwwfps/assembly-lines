@@ -6,12 +6,11 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gwwfps/assembly-lines/manager"
 	jsonitor "github.com/json-iterator/go"
 	"github.com/labstack/echo"
 	"gopkg.in/olahol/melody.v1"
 )
-
-const playerIdKey = "playerId"
 
 func (srv *Server) handleUpgrade(c echo.Context) error {
 	playerId := c.Param("id")
@@ -20,9 +19,11 @@ func (srv *Server) handleUpgrade(c echo.Context) error {
 		return nil
 	}
 
-	return srv.m.HandleRequestWithKeys(c.Response(), c.Request(), map[string]interface{}{
-		playerIdKey: playerId,
-	})
+	return srv.m.HandleRequestWithKeys(c.Response(), c.Request(), manager.SessionContext(playerId))
+}
+
+func replyWithError(s *melody.Session, err string) {
+	s.Write([]byte(fmt.Sprintf("error|%s", err)))
 }
 
 func (srv *Server) handleMessage(s *melody.Session, msg []byte) {
@@ -32,11 +33,12 @@ func (srv *Server) handleMessage(s *melody.Session, msg []byte) {
 			if !ok {
 				err = fmt.Errorf("non-error panic: %v", r)
 			}
-			srv.e.Logger.Error("recovered panic in message handler", err.Error())
+			srv.e.Logger.Error("recovered panic in message handler", err)
+			replyWithError(s, "unexpected error")
 		}
 	}()
 
-	playerId := s.MustGet(playerIdKey).(string)
+	playerId := s.MustGet(manager.PlayerIdContextKey).(string)
 
 	parts := strings.SplitN(string(msg), "|", 2)
 	action := parts[0]
@@ -58,7 +60,10 @@ func (srv *Server) handleMessage(s *melody.Session, msg []byte) {
 	}
 
 	args := []reflect.Value{
-		reflect.ValueOf(playerId),
+		reflect.ValueOf(manager.MessageContext{
+			Session:  s,
+			PlayerId: playerId,
+		}),
 	}
 	methodType := method.Type()
 	if methodType.NumIn() > 1 {
@@ -73,10 +78,11 @@ func (srv *Server) handleMessage(s *melody.Session, msg []byte) {
 
 	out := method.Call(args)
 	if len(out) > 0 {
-		err := out[0].Interface().(error)
-		if err != nil {
-			s.Write([]byte(fmt.Sprintf("error|%s", err.Error())))
+		outVal := out[0].Interface()
+		if outVal != nil {
+			err := outVal.(error)
 			srv.e.Logger.Error("message handler returned error", err)
+			replyWithError(s, err.Error())
 		}
 	}
 }

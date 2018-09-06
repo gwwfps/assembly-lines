@@ -23,17 +23,18 @@ export default mvi({
         <h1>Assembly Lines the Game</h1>
         <p>msg: {msg}</p>
         <input />
-        <button>Send</button>
+        <button>join</button>
       </div>
     )),
     game: click$
       .compose(sampleCombine(input$))
       .map(([click, input]) => input)
       .filter(x => x)
-      .map(action => ({
-        action,
+      .map(name => ({
+        action: 'StartLobby',
         argsJson: {
-          Question: 0
+          Name: name,
+          SheetName: name
         }
       }))
   }),
