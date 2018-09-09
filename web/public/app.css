@@ -4,7 +4,32 @@ body {
   font-family: 'Varela Round', sans-serif;
 }
 
-h1 {
+h1,
+h2,
+h3,
+h4,
+h5 {
   font-family: 'Playfair Display', serif;
   font-weight: normal;
+}
+
+#root {
+  margin-top: 2rem;
+}
+
+.debug {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 500px;
+}
+
+.debug > textarea {
+  width: 500px;
+  height: 300px;
+  font-family: monospace;
+}
+
+.column {
+  padding: 0.5rem;
 }

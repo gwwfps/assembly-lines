@@ -1,4 +1,5 @@
 import isolate from '@cycle/isolate';
+import xs from 'xstream';
 
 const identity = x => x;
 
@@ -22,8 +23,48 @@ export default function makeMVIComponent({
     }, {});
 
     const actions = intent(sources, componentSinks);
-    const state$ = model(actions, componentSinks);
-    const sinks = view(state$, componentSinks);
+    const state = model(actions, componentSinks);
+    const sinkCreators = view(state, componentSinks);
+
+    const sinks = Object.keys(sinkCreators).reduce((acc, type) => {
+      let combinedSink;
+      const create = sinkCreators[type];
+      if (typeof create === 'function') {
+        const keys = Object.keys(componentSinks).filter(
+          key => componentSinks[key][type]
+        );
+        const componentSinksForType = keys.reduce(
+          (accum, key) => ({
+            ...accum,
+            [`${key}$`]: componentSinks[key][type]
+          }),
+          {}
+        );
+        if (keys.length > 1) {
+          componentSinksForType.components$ = xs
+            .combine(
+              ...Object.values(componentSinksForType).map(sink =>
+                sink.startWith(undefined)
+              )
+            )
+            .map(values =>
+              values.reduce(
+                (accum, value, i) => ({
+                  ...accum,
+                  [keys[i]]: value
+                }),
+                {}
+              )
+            );
+        }
+        combinedSink = create(componentSinksForType);
+      } else {
+        combinedSink = create;
+      }
+
+      return { ...acc, [type]: combinedSink };
+    }, {});
+
     return sinks;
   };
 }

@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gwwfps/assembly-lines/game/cards"
 )
@@ -16,6 +17,8 @@ const (
 )
 
 type Game struct {
+	Id               string
+	CreationTime     time.Time
 	Deck             *cards.Deck
 	Phase            GamePhase
 	Players          map[string]*Player
@@ -23,8 +26,10 @@ type Game struct {
 	globalStateMutex *sync.Mutex
 }
 
-func NewStandardGame() *Game {
+func NewStandardGame(id string) *Game {
 	return &Game{
+		Id:               id,
+		CreationTime:     time.Now(),
 		Phase:            GamePhaseLobby,
 		Players:          map[string]*Player{},
 		Deck:             cards.NewStandardDeck(),

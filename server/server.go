@@ -37,5 +37,7 @@ func (srv *Server) Start() error {
 
 	srv.m.HandleMessage(srv.handleMessage)
 
+	go manager.Watch(srv.gm)
+
 	return srv.e.Start(":5555")
 }
