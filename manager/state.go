@@ -2,7 +2,6 @@ package manager
 
 import (
 	"github.com/gwwfps/assembly-lines/game"
-	"github.com/json-iterator/go"
 )
 
 type PlayerStatus int
@@ -15,6 +14,11 @@ const (
 type PlayerState struct {
 	Status PlayerStatus
 	State  interface{}
+	Init   *InitState
+}
+
+type InitState struct {
+	Name string
 }
 
 func stateForLobby(lobbies Lobbies) *PlayerState {
@@ -36,21 +40,12 @@ func (gm *GameManager) FetchState(c MessageContext) error {
 	var state *PlayerState
 	if inGame {
 		state = stateForGame(g)
+		state.Init = &InitState{
+			Name: g.GetPlayerById(c.PlayerId).Name,
+		}
 	} else {
 		state = stateForLobby(gm.getLobbies())
 	}
 
-	data, err := jsoniter.ConfigFastest.Marshal(state)
-	if err != nil {
-		gm.logger.Error("cannot serialize data", err)
-		return unexpectedError
-	}
-
-	err = c.Session.Write(data)
-	if err != nil {
-		gm.logger.Error("cannot write to WebSocket", err)
-		return unexpectedError
-	}
-
-	return nil
+	return gm.reply(c, state)
 }

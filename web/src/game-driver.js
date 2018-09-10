@@ -23,6 +23,7 @@ const transformArgs = args =>
 
 export async function makeGameDriver(playerId) {
   const connection = await openWS(playerId);
+  let initState = {};
 
   return function(sink$) {
     sink$.addListener({
@@ -56,9 +57,17 @@ export async function makeGameDriver(playerId) {
 
     connection.onmessage = ({ data }) => {
       if (data.startsWith(errorPrefix)) {
-        errorListener && errorListener.next(data.substring(errorPrefix.length));
+        if (errorListener) {
+          errorListener.next(data.substring(errorPrefix.length));
+        }
       } else {
-        stateListener && stateListener.next(JSON.parse(data));
+        const state = JSON.parse(data);
+        if (state.Init) {
+          initState = state.Init;
+        }
+        if (stateListener) {
+          stateListener.next({ ...initState, ...state });
+        }
       }
     };
 

@@ -43,8 +43,19 @@ export default mvi({
       ([lobbies, show, enabled]) =>
         show ? (
           <div className="columns">
-            {Object.keys(lobbies).map(id =>
-              LobbyCard({ id, players: lobbies[id], enabled })
+            {Object.keys(lobbies).length ? (
+              Object.keys(lobbies).map(id =>
+                LobbyCard({ id, players: lobbies[id], enabled })
+              )
+            ) : (
+              <div className="column col-6">
+                <div className="empty">
+                  <p className="empty-title h5">
+                    No lobby waiting for game start.
+                  </p>
+                  <p className="empty-subtitle">Start a new one to play.</p>
+                </div>
+              </div>
             )}
             <div className="column col-6">
               <div className="panel">

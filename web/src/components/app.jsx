@@ -3,11 +3,12 @@ import xs from 'xstream';
 import mvi from '../utils/mvi';
 import Debug from './debug';
 import Lobby from './lobby';
+import Game from './game';
 
 export default mvi({
   view: () => ({
     DOM: ({ components$ }) =>
-      components$.map(({ debug, lobby }) => (
+      components$.map(({ debug, lobby, game }) => (
         <div>
           <div className="container grid-lg">
             <div className="columns">
@@ -16,12 +17,13 @@ export default mvi({
               </div>
             </div>
             {lobby}
+            {game}
           </div>
           {debug}
         </div>
       )),
-    game: ({ debug$, lobby$ }) =>
-      xs.merge(debug$, lobby$).startWith({
+    game: ({ debug$, lobby$, game$ }) =>
+      xs.merge(debug$, lobby$, game$).startWith({
         action: 'FetchState'
       })
   }),
@@ -32,6 +34,9 @@ export default mvi({
     },
     lobby: {
       main: Lobby
+    },
+    game: {
+      main: Game
     }
   }
 });

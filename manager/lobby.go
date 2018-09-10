@@ -90,7 +90,7 @@ func (gm *GameManager) StartLobby(c MessageContext, args JoinLobbyArgs) error {
 
 	gm.logger.Infof("%s started game %s as %s", c.PlayerId, g.Id, name)
 
-	return nil
+	return gm.FetchState(c)
 }
 
 func (gm *GameManager) JoinLobby(c MessageContext, args JoinLobbyArgs) error {
@@ -121,6 +121,51 @@ func (gm *GameManager) JoinLobby(c MessageContext, args JoinLobbyArgs) error {
 	gm.scheduleBroadcastState(g)
 
 	gm.logger.Infof("%s joined %s as %s", c.PlayerId, g.Id, name)
+
+	return gm.FetchState(c)
+}
+
+func (gm *GameManager) LeaveLobby(c MessageContext) error {
+	gm.mutex.Lock()
+	defer gm.mutex.Unlock()
+
+	g := gm.findGame(c)
+	if g == nil {
+		return fmt.Errorf("player is not part of any lobby")
+	}
+
+	err := g.WithdrawPlayer(c.PlayerId)
+	if err != nil {
+		return err
+	}
+	delete(gm.activeGamesByPlayerId, c.PlayerId)
+	if len(g.Players) == 0 {
+		delete(gm.activeGamesById, g.Id)
+	}
+
+	gm.scheduleBroadcastLobbies()
+	if len(g.Players) > 0 {
+		gm.scheduleBroadcastState(g)
+	}
+
+	gm.logger.Infof("%s left %s", c.PlayerId, g.Id)
+
+	return nil
+}
+
+func (gm *GameManager) StartGame(c MessageContext) error {
+	g := gm.findGame(c)
+	if g == nil {
+		return fmt.Errorf("player is not part of any lobby")
+	}
+
+	err := g.Start()
+	if err != nil {
+		return err
+	}
+
+	gm.scheduleBroadcastLobbies()
+	gm.scheduleBroadcastState(g)
 
 	return nil
 }

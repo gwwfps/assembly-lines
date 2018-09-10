@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gwwfps/assembly-lines/game"
+	"github.com/json-iterator/go"
 	"github.com/labstack/echo"
 	"gopkg.in/olahol/melody.v1"
 )
@@ -59,4 +60,20 @@ func Watch(gm *GameManager) {
 
 func (gm *GameManager) findGame(c MessageContext) *game.Game {
 	return gm.activeGamesByPlayerId[c.PlayerId]
+}
+
+func (gm *GameManager) reply(c MessageContext, payload interface{}) error {
+	data, err := jsoniter.ConfigFastest.Marshal(payload)
+	if err != nil {
+		gm.logger.Error("cannot serialize data", err)
+		return unexpectedError
+	}
+
+	err = c.Session.Write(data)
+	if err != nil {
+		gm.logger.Error("cannot write to WebSocket", err)
+		return unexpectedError
+	}
+
+	return nil
 }
